@@ -41,7 +41,7 @@ class CustomSession(requests.Session):
         ```
         or alternatively you could use an context manager like:
         ```python
-        with without_prepare(custom_session) as sess:
+        with without_preparation(custom_session) as sess:
             custom_session.get("http://www.url_without_prepare.com")
         ```
     :param save_last_requests: int defining the last how many requests get stores in the self.history variable. This is
