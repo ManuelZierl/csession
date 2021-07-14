@@ -3,9 +3,10 @@ import requests
 from requests import Response
 
 
-# let put a comment here to check if it works 0.0.10
-
 class without_preparation:
+    """
+    a context manger for code blocks that shouldn't use preparation
+    """
     def __init__(self, custom_session):
         assert isinstance(custom_session, CustomSession)
         self.custom_session = custom_session

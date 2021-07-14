@@ -1,3 +1,4 @@
 requests==2.24.0
 pytest-httpbin==1.0.0
 pytest-mock==3.3.1
+pytest==6.0.1

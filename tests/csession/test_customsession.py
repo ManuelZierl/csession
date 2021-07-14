@@ -4,7 +4,7 @@ import pytest
 import requests
 from requests import ReadTimeout
 
-from csession import CustomSession
+from csession import CustomSession, without_preparation
 
 
 def test_custom_session_init(mocker):
@@ -81,6 +81,7 @@ def test_custom_session_request(mocker):
 
 
 def test_custom_session_timeout(httpbin):
+    # test a real request to a local httbin server
     sess = CustomSession(headers={'Content-type': 'application/json'}, timeout=2, save_last_requests=3)
     _ = sess.get(f"{httpbin.url}/delay/1")
 
@@ -90,7 +91,7 @@ def test_custom_session_timeout(httpbin):
     new_sess = CustomSession(headers={'Content-type': 'application/json'}, timeout=6)
     _ = new_sess.get(f"{httpbin.url}/delay/3")
 
-"""
+
 def test_deactivate_preparation_context(mocker):
     mocker.patch("requests.Session.request")
     spy_request = mocker.spy(requests.Session, "request")
@@ -162,42 +163,4 @@ def test_custom_session_history(mocker):
     assert sess.last_json_body() == {"my": 4}
 
 
-def test_microlog_session(mocker):
-    mocker.patch("requests.Session.request")
-    spy_request = mocker.spy(requests.Session, "request")
 
-    json_body_old = auth \
-        .generate_auth() \
-        .get("update")({
-            "instanceId": 1,
-            "callbackURL": app.config['CALLBACK_URL'],
-            "bearer": ""
-        })
-
-    _ = microlog_session.post('/apiFramework/kiosk/registerCallbackURL',
-                              json={"instanceId": 1, "callbackURL": app.config['CALLBACK_URL'], "bearer": ""})
-    json_body_new = microlog_session.last_json_body()
-
-    assert spy_request.call_args[0] == ("POST", "https://parking.microlog.no/apiFramework/kiosk/registerCallbackURL")
-    assert spy_request.call_args[1]["headers"] == {'Content-type': 'application/json'}
-    assert spy_request.call_args[1]["timeout"] == 30
-    assert spy_request.call_args[1]["data"] is None
-
-    should = {'instanceId': 1, 'callbackURL': '', 'bearer': '', 'applicationId': app.config['MICROLOG_APPLICATION_ID'],
-              'password': app.config['MICROLOG_PASSWORD'],
-              'Bearer': app.config['CALLBACK_BEARER']}
-
-    assert spy_request.call_args[1]["json"] == should
-    assert json_body_new == json_body_old
-    assert json_body_new == should
-
-
-def test_falcon_session(mocker):
-    mocker.patch("requests.Session.request")
-    spy_request = mocker.spy(requests.Session, "request")
-
-    _ = falcon_session.get('/area/553cf0d9-9a66-4626-83b4-4525de80f3d9')
-    assert spy_request.call_args[0] == ('GET', 'https://api.peterpark.dev/area/553cf0d9-9a66-4626-83b4-4525de80f3d9')
-    assert spy_request.call_args[1]["headers"] == {'Authorization': f'Bearer {app.config["FALCON_AUTH"]}'}
-    assert spy_request.call_args[1]["timeout"] == 30
-"""
