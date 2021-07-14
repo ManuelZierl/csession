@@ -1,7 +1,7 @@
 # CSession
 
 The `csession` package implements a simple wrapper class around the 
-[Sesion](https://github.com/psf/requests/blob/master/requests/sessions.py) class of the 
+[Session](https://github.com/psf/requests/blob/master/requests/sessions.py) class of the 
 [requests](https://github.com/psf/requests) module called `CustomSession` that give more freedom to the 
 programmer to customize his session by for example setting a default timeout or headers.
 
@@ -36,7 +36,7 @@ csess = CustomSession(timeout=30, headers={'Content-type': 'application/json'})
 
 the `CustomSession` can also set a default prepare methode to  manipulate the request
 before they are sent. This is for example useful for authentication purposes or url prefixing.
-Here is a exaple for a sesion that is prefixing every request and also adding a default password an appId
+Here is a example for a session that is prefixing every request and also adding a default password an appId
 to the json body of a request
 
 ```python
@@ -65,7 +65,7 @@ csess = CustomSession(
 csess.get("/path/to/endpoint")
 ```
 
-if for a sinlge call the prepare methode should be suppressed you can do:
+if for a single call the prepare methode should be suppressed you can do:
 ```python
 from csession import CustomSession
 csess = CustomSession(prepare=...)
@@ -84,7 +84,7 @@ with without_preparation(csess) as sess:
 ```
 
 The `CustomSession` also provides a simple history function in for of a deque.
-History is deactivated by default but can be activated in the construcotr by setting 
+History is deactivated by default but can be activated in the constructor by setting 
 `save_last_requests=`
 
 ```python
