@@ -5,3 +5,8 @@
 .vscode/
 __pycache__
 venv
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+Pipfile*
