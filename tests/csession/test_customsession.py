@@ -194,3 +194,38 @@ def test_prepare_args(mocker):
         prepare=prepare_43
     )
     _ = sess.post("https://httpbin.org/", json={"my": "request"})
+
+
+def test_error_propagation(mocker):
+    mocker.patch("requests.Session.request")
+    spy_request = mocker.spy(requests.Session, "request")
+
+    def prepare_request(methode, url, params):
+        if params["json"]["key"] == "errorkey":
+            raise ConnectionError("error key prevents connection")
+        return methode, url, params
+
+    sess = CustomSession(
+        headers={'Content-type': 'application/json'},
+        timeout=42,
+        prepare=prepare_request
+    )
+
+    _ = sess.post("https://httpbin.org/", json={"key": "keyok"})
+
+    with pytest.raises(ConnectionError) as e:
+        _ = sess.post("https://httpbin.org/", json={"key": "errorkey"})
+    assert str(e.value) == "error key prevents connection"
+
+    def prepare_slave_request(method, url, params, operator_key=None):
+        print(method, url, params)
+        return method, url, params
+
+    slave_session = CustomSession(
+        timeout=30,
+        prepare=prepare_slave_request
+    )
+
+    slave_session.post("https://httpbin.org/", json={"key": "errorkey"})
+
+
