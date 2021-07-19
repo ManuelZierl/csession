@@ -2,7 +2,7 @@ from collections import deque
 
 import pytest
 import requests
-from requests import ReadTimeout
+from requests import ReadTimeout, Timeout
 
 from csession import CustomSession, without_preparation
 
@@ -88,6 +88,9 @@ def test_custom_session_timeout(httpbin):
     with pytest.raises(ReadTimeout):
         _ = sess.get(f"{httpbin.url}/delay/3")
 
+    with pytest.raises(Timeout):
+        _ = sess.get(f"{httpbin.url}/delay/3")
+
     new_sess = CustomSession(headers={'Content-type': 'application/json'}, timeout=6)
     _ = new_sess.get(f"{httpbin.url}/delay/3")
 
@@ -164,3 +167,30 @@ def test_custom_session_history(mocker):
 
 
 
+def test_prepare_args(mocker):
+    mocker.patch("requests.Session.request")
+    spy_request = mocker.spy(requests.Session, "request")
+
+    def prepare_42(methode, url, params, foo=43):
+        assert foo == 42
+        return methode, url, params
+
+    sess = CustomSession(
+        headers={'Content-type': 'application/json'},
+        timeout=42,
+        save_last_requests=3,
+        prepare=prepare_42
+    )
+    _ = sess.post("https://httpbin.org/", json={"my": "request"}, prepare_args={"foo": 42})
+
+    def prepare_43(methode, url, params, foo=43):
+        assert foo == 43
+        return methode, url, params
+
+    sess = CustomSession(
+        headers={'Content-type': 'application/json'},
+        timeout=42,
+        save_last_requests=3,
+        prepare=prepare_43
+    )
+    _ = sess.post("https://httpbin.org/", json={"my": "request"})

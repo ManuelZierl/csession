@@ -44,6 +44,7 @@ class CustomSession(requests.Session):
         with without_preparation(custom_session) as sess:
             custom_session.get("http://www.url_without_prepare.com")
         ```
+        # todo: explain prepare_args: how to pass arguments to the prepare function
     :param save_last_requests: int defining the last how many requests get stores in the self.history variable. This is
         useful if you for example want to know the content of a request after it was done (with al the changes this
         class as made). Default is set to 0
@@ -52,11 +53,11 @@ class CustomSession(requests.Session):
     def __init__(self, params=None, data=None, headers=None, cookies=None, files=None,
                  auth=None, timeout=None, allow_redirects=None, proxies=None,
                  hooks=None, stream=None, verify=None, cert=None, json=None,
-                 prepare = None, save_last_requests=0):
+                 prepare=None, save_last_requests=0):
         self.default_kwargs = {
             "params": params, "data": data, "headers": headers, "cookies": cookies, "files": files, "auth": auth,
             "timeout": timeout, "allow_redirects": allow_redirects, "proxies": proxies, "hooks": hooks,
-            "stream": stream, "verify": verify, "cert": cert, " json": json
+            "stream": stream, "verify": verify, "cert": cert, "json": json
         }
         assert prepare is None or isinstance(prepare, collections.Callable)
         self.prepare = prepare
@@ -66,9 +67,11 @@ class CustomSession(requests.Session):
         self.default_kwargs = {key: val for key, val in self.default_kwargs.items() if val is not None}
         super().__init__()
 
-    def request(self, method: str, url, **kwargs) -> Response:
+    def request(self, method: str, url, prepare_args=None, **kwargs) -> Response:
+        if prepare_args is None:
+            prepare_args = {}
         if self.use_prepare and self.prepare:
-            method, url, kwargs = self.prepare(method, url, kwargs)
+            method, url, kwargs = self.prepare(method, url, kwargs, **prepare_args)
         kwargs = dict(self.default_kwargs, **kwargs)
 
         self.history.append({
