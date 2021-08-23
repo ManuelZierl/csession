@@ -1,4 +1,6 @@
 import collections
+from typing import Optional
+
 import requests
 from requests import Response
 
@@ -45,6 +47,7 @@ class CustomSession(requests.Session):
             custom_session.get("http://www.url_without_prepare.com")
         ```
         # todo: explain prepare_args: how to pass arguments to the prepare function
+        # todo: explain handle_exception: ...
     :param save_last_requests: int defining the last how many requests get stores in the self.history variable. This is
         useful if you for example want to know the content of a request after it was done (with al the changes this
         class as made). Default is set to 0
@@ -53,13 +56,14 @@ class CustomSession(requests.Session):
     def __init__(self, params=None, data=None, headers=None, cookies=None, files=None,
                  auth=None, timeout=None, allow_redirects=None, proxies=None,
                  hooks=None, stream=None, verify=None, cert=None, json=None,
-                 prepare=None, save_last_requests=0):
+                 prepare=None, save_last_requests=0, handle_exception=None):
         self.default_kwargs = {
             "params": params, "data": data, "headers": headers, "cookies": cookies, "files": files, "auth": auth,
             "timeout": timeout, "allow_redirects": allow_redirects, "proxies": proxies, "hooks": hooks,
             "stream": stream, "verify": verify, "cert": cert, "json": json
         }
         assert prepare is None or isinstance(prepare, collections.Callable)
+        self.handle_exception = handle_exception
         self.prepare = prepare
         self.use_prepare = True
         self.save_last_requests = save_last_requests
@@ -67,7 +71,7 @@ class CustomSession(requests.Session):
         self.default_kwargs = {key: val for key, val in self.default_kwargs.items() if val is not None}
         super().__init__()
 
-    def request(self, method: str, url, prepare_args=None, **kwargs) -> Response:
+    def request(self, method: str, url, prepare_args=None, handle_exception_args=None, **kwargs) -> Optional[Response]:
         if prepare_args is None:
             prepare_args = {}
         if self.use_prepare and self.prepare:
@@ -80,6 +84,14 @@ class CustomSession(requests.Session):
             "params": kwargs
         })
 
+        if self.handle_exception is not None:
+            if handle_exception_args is None:
+                handle_exception_args = {}
+            try:
+                r = super().request(method, url, **kwargs)
+                return r
+            except requests.RequestException as exc:
+                return self.handle_exception(exc, **handle_exception_args)
         return super().request(method, url, **kwargs)
 
     def last_json_body(self):

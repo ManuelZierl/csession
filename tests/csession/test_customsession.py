@@ -166,7 +166,6 @@ def test_custom_session_history(mocker):
     assert sess.last_json_body() == {"my": 4}
 
 
-
 def test_prepare_args(mocker):
     mocker.patch("requests.Session.request")
     spy_request = mocker.spy(requests.Session, "request")
@@ -229,3 +228,39 @@ def test_error_propagation(mocker):
     slave_session.post("https://httpbin.org/", json={"key": "errorkey"})
 
 
+@pytest.mark.parametrize("method", ["post", "get", "delete"])
+def test_handle_missing_schema(method):
+    def handler(exc, **kwargs):
+        assert kwargs == {"name": "myname"}
+        assert isinstance(exc, requests.exceptions.MissingSchema)
+        return {"response": "error"}
+
+    cu = CustomSession(handle_exception=handler)
+    r = getattr(cu, method)("not-a-real-url", handle_exception_args={"name": "myname"})
+    assert r == {"response": "error"}
+
+
+@pytest.mark.parametrize("method", ["post", "get", "delete"])
+def test_handle_missing_wrong_url(method):
+    def handler(exc, **kwargs):
+        assert kwargs == {"some": "json"}
+        assert isinstance(exc, requests.ConnectionError)
+        return {"response": "error"}
+
+    cu = CustomSession(handle_exception=handler)
+    r = getattr(cu, method)("https://notanrealurl.com/not/real/url", handle_exception_args={"some": "json"})
+    assert r == {"response": "error"}
+
+
+def test_handle_timeout(httpbin):
+    def handler(exc, **kwargs):
+        assert kwargs == {"other": "json"}
+        assert isinstance(exc, requests.ReadTimeout)
+        return {"response": "error"}
+
+    cu = CustomSession(handle_exception=handler, timeout=6)
+    r = cu.get(f"{httpbin.url}/delay/10", handle_exception_args={"other": "json"})
+    assert r == {"response": "error"}
+
+    r = cu.get(f"{httpbin.url}/delay/1", handle_exception_args={"not": "the other json"})
+    assert r.status_code == 200
