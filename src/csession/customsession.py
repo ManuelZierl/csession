@@ -85,13 +85,19 @@ class CustomSession(requests.Session):
         })
 
         if self.handle_exception is not None:
-            if handle_exception_args is None:
-                handle_exception_args = {}
             try:
                 r = super().request(method, url, **kwargs)
                 return r
             except requests.RequestException as exc:
-                return self.handle_exception(exc, **handle_exception_args)
+                if handle_exception_args is None:
+                    handle_exception_args = {}
+                handle_args = dict(
+                    method=method,
+                    url=url,
+                    params=kwargs,
+                    **handle_exception_args
+                )
+                return self.handle_exception(exc, **handle_args)
         return super().request(method, url, **kwargs)
 
     def last_json_body(self):

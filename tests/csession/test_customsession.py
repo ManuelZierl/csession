@@ -228,34 +228,42 @@ def test_error_propagation(mocker):
     slave_session.post("https://httpbin.org/", json={"key": "errorkey"})
 
 
-@pytest.mark.parametrize("method", ["post", "get", "delete"])
-def test_handle_missing_schema(method):
-    def handler(exc, **kwargs):
-        assert kwargs == {"name": "myname"}
+def test_handle_missing_schema():
+    def handler(exc, method, url, params, **kwarg):
+        assert method == "POST"
+        assert url == "not-a-real-url"
+        assert params == {'data': None, 'json': None}
+        assert kwarg == {'name': 'myname'}
         assert isinstance(exc, requests.exceptions.MissingSchema)
         return {"response": "error"}
 
     cu = CustomSession(handle_exception=handler)
-    r = getattr(cu, method)("not-a-real-url", handle_exception_args={"name": "myname"})
+    r = cu.post("not-a-real-url", handle_exception_args={"name": "myname"})
     assert r == {"response": "error"}
 
 
-@pytest.mark.parametrize("method", ["post", "get", "delete"])
-def test_handle_missing_wrong_url(method):
-    def handler(exc, **kwargs):
-        assert kwargs == {"some": "json"}
+def test_handle_missing_wrong_url():
+    def handler(exc, method, url, params, **kwargs):
+        assert method == "POST"
+        assert url == "https://notanrealurl.com/not/real/url"
+        assert params == {'data': None, 'json': {'some': 'json'}}
         assert isinstance(exc, requests.ConnectionError)
+        assert kwargs == {"some": "json"}
         return {"response": "error"}
 
     cu = CustomSession(handle_exception=handler)
-    r = getattr(cu, method)("https://notanrealurl.com/not/real/url", handle_exception_args={"some": "json"})
+    r = cu.post("https://notanrealurl.com/not/real/url", handle_exception_args={"some": "json"},
+                                 json={"some": "json"})
     assert r == {"response": "error"}
 
 
 def test_handle_timeout(httpbin):
-    def handler(exc, **kwargs):
-        assert kwargs == {"other": "json"}
+    def handler(exc, method, url, params, **kwarg):
+        assert method == "GET"
+        assert url == f"{httpbin.url}/delay/10"
+        assert params == {'timeout': 6, 'allow_redirects': True}
         assert isinstance(exc, requests.ReadTimeout)
+        assert kwarg == {'other': 'json'}
         return {"response": "error"}
 
     cu = CustomSession(handle_exception=handler, timeout=6)
